@@ -76,7 +76,7 @@ export default {
       console.log(data) 
       /*eslint-enable*/
 
-      axios({ method: "POST", url: "http://127.0.0.1:8090/calc", data: data, headers: {"content-type": "text/plain" } }).then(result => { 
+      axios({ method: "POST", url: " https://calculator-example.herokuapp.com/calc", data: data, headers: {"content-type": "text/plain" } }).then(result => { 
           // this.response = result.data;
           this.add = result.data['add']
           this.mul = result.data['mul']

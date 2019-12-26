@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"github.com/sirupsen/logrus"
 )
 
 type numbers struct {
@@ -49,7 +51,17 @@ func calc(w http.ResponseWriter, request *http.Request) {
     }
 }
 
+var (
+	log = logrus.WithField("cmd", "go-realtime-chat")
+)
+
 func main() {
+	// Check to see if PORT has been set
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.WithField("PORT", port).Fatal("$PORT must be set")
+	}
+
 	http.HandleFunc("/", calc)
-	http.ListenAndServe(":8090", nil)
+	http.ListenAndServe(":"+port, nil)
 }
