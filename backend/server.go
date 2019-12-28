@@ -1,54 +1,27 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
+	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-	"github.com/sirupsen/logrus"
 )
 
-type numbers struct {
-	Num1 float64 `json:"num1"`
-	Num2 float64 `json:"num2"`
+var clients = make(map[*websocket.Conn]bool) // connected clients
+var broadcast = make(chan Message)           // broadcast channel
+
+// Configure the upgrader
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
-type numsResponseData struct {
-	Add float64 `json:"add"`
-	Mul float64 `json:"mul"`
-	Sub float64 `json:"sub"`
-	Div float64 `json:"div"`
-}
-
-func process(numsdata numbers) (numsResponseData) {
-	
-	var numsres numsResponseData
-	numsres.Add = numsdata.Num1 + numsdata.Num2
-	numsres.Mul = numsdata.Num1 * numsdata.Num2
-	numsres.Sub = numsdata.Num1 - numsdata.Num2
-	numsres.Div = numsdata.Num1 / numsdata.Num2
-
-	return numsres
-}
-
-func calc(w http.ResponseWriter, request *http.Request) {
-	decoder := json.NewDecoder(request.Body)
-
-	var numsData numbers
-	var numsResData numsResponseData
-	
-	decoder.Decode(&numsData)
-
-	numsResData = process(numsData)
-
-	fmt.Println(numsResData)
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-    w.WriteHeader(http.StatusOK)
-    if err := json.NewEncoder(w).Encode(numsResData); err != nil {
-        panic(err)
-    }
+// Define our message object
+type Message struct {
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	Message  string `json:"message"`
 }
 
 var (
@@ -56,12 +29,75 @@ var (
 )
 
 func main() {
+
 	// Check to see if PORT has been set
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.WithField("PORT", port).Fatal("$PORT must be set")
 	}
 
-	http.HandleFunc("/", calc)
-	http.ListenAndServe(":"+port, nil)
+	// Create a simple file server
+	fs := http.FileServer(http.Dir("public"))
+	http.Handle("/", fs)
+
+	// Configure websocket route
+	http.HandleFunc("/ws", handleConnections)
+
+	// Start listening for incoming chat messages
+	go handleMessages()
+
+	// Start the server on localhost port 8000 and log any errors
+	log.Println("http server started on PORT:", port)
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
+func handleConnections(w http.ResponseWriter, r *http.Request) {
+	// Upgrade initial GET request to a websocket
+
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("upgraded")
+
+	// Make sure we close the connection when the function returns
+	defer ws.Close()
+
+	// Register our new client
+	clients[ws] = true
+
+	for {
+		var msg Message
+		// Read in a new message as JSON and map it to a Message object
+		err := ws.ReadJSON(&msg)
+		if err != nil {
+			log.Printf("error: %v", err)
+			delete(clients, ws)
+			break
+		}
+		// Send the newly received message to the broadcast channel
+		broadcast <- msg
+
+	}
+}
+
+func handleMessages() {
+	for {
+		// Grab the next message from the broadcast channel
+		msg := <-broadcast
+
+		log.Println("message:%v", msg)
+		// Send it out to every client that is currently connected
+		for client := range clients {
+			err := client.WriteJSON(msg)
+			if err != nil {
+				log.Printf("error: %v", err)
+				client.Close()
+				delete(clients, client)
+			}
+		}
+	}
 }
