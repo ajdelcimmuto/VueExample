@@ -1,48 +1,44 @@
 <template>
- <main>
-    <div class="col s12 blue-grey darken-4">     
-        <div class="row-content center" style="border-bottom: 1px solid #424242">
-             <span class="flow-text white-text">This div is 12-columns wide on all screen sizes</span>
+ <div class="chat-app" style="border-right: 1px solid #424242">
+    <div class="col">     
+        <div class="row-content center z-depth-3" style="border-bottom: 1px solid #424242">
+             <span class="flow-text white-text">{{ title }}</span>
         </div>
 
-        <div class="row" style="position: relative;">
-            <div id="chat-messages" class="card-content left" style="margin: 20px;" v-html="chatContent">
+        <div class="row" style="position: relative; margin-bottom: 0px;">
+            <div id="chat-messages" class="card-content left" style="margin: 10px;" v-html="chatContent">
             </div>
-            <button id="close-button" class="lime lighten-2 btn right" style="margin: 20px; position: absolute; top: 0px; right: 0px;">
-                <i class="material-icons">close</i>
-            </button>
         </div>
     </div>
 
     <!-- if a session is joined -->
-    <div class="row" style="margin: 20px;" v-if="joined">
-        <div class="input-field col s4">
-            <input type="text" v-model="newMsg" placeholder="Say something here" @keyup.enter="send">
+    <div class="col blue-grey darken-4 z-depth-1">
+        <div class="row chat-box" style="margin-bottom:0px;margin-left:5px" v-if="joined">
+            <div class="input-field col s4 left box">
+                <input type="text" v-model="newMsg" placeholder="Say something here" @keyup.enter="send">
+            </div>
+            <a class="btn-floating lime lighten-2" style="margin: 10px; margin-top:20px" @click="send">
+                <i class="material-icons" style="line-height: 40px; color: black;">send</i>
+            </a>
+            <a class="btn-floating lime lighten-2" style="margin: 10px; margin-top:20px" @click="close">
+                <i class="material-icons" style="line-height: 40px; color: black;">close</i>
+            </a>
         </div>
-        <div class="input-field col s4">
-            <button class="waves-effect lime lighten-2 btn" @click="send">
-                <i class="material-icons right">chat</i>
-                Send
-            </button>
-        </div>
-    </div>
 
-    <!-- if a session is not joined -->
-    <div class="row" style="margin: 20px;" v-if="!joined">
-        <div class="input-field col s4">
-            <input type="email" v-model.trim="email" placeholder="Email">
-        </div>
-        <div class="input-field col s4">
-            <input type="text" v-model.trim="username" placeholder="Username">
-        </div>
-        <div class="input-field col s4">
-            <button class="waves-effect lime lighten-2 btn" @click="join()">
-                <i class="material-icons right">done</i>
-                Join
-            </button>
+        <!-- if a session is not joined -->
+        <div class="row chat-box" style="margin-bottom:0px; margin-left:5px" v-if="!joined">
+            <div class="input-field col s4 box">
+                <input type="email" v-model.trim="email" placeholder="Email">
+            </div>
+            <div class="input-field col s4 box" style="margin-left:5px">
+                <input type="text" v-model.trim="username" placeholder="Username">
+            </div>
+          <a class="btn-floating lime lighten-2" style="margin: 10px; margin-top:20px" @click="join">
+                <i class="material-icons" style="line-height: 40px; color: black;">done</i>
+            </a>
         </div>
     </div>
-</main>
+</div>
 
 </template>
 
@@ -51,7 +47,11 @@ import * as emojione from "emojione";
 import $ from "jquery";
 export default {
   name: 'Chat',
-  
+
+  props: {
+  title: String
+  },
+
   data: function() {
     return {
         ws: null, // Our websocket
@@ -125,14 +125,14 @@ export default {
         open: function() {
             var self = this;
             if(!this.debug)
-                this.ws = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/ws");
+                this.ws = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + "calculator-example.herokuapp.com" + "/ws");
             else
                 this.ws = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + "localhost:8000" + "/ws");
 
             this.ws.addEventListener('message', function(event) {
                 var msg = JSON.parse(event.data);
-                self.chatContent += '<div class="chip">'
-                        + '<i class="material-icons left">account_circle</i>'
+                self.chatContent += '<div class="chip lime lighten-2">'
+                        + '<i class="material-icons left black-text">account_circle</i>'
                             + msg.username
                         + '</div>'
                     + emojione.toImage(msg.message) + '<br/>'; // Parse emojis
@@ -166,6 +166,17 @@ export default {
     color:white;
 }
 
+.box {
+    padding:5px;
+    border: 1px solid #616161;
+     border-radius: 4px;
+     background-color:#37474f;
+}
+
+input, select, textarea{
+    color: #FFFFFF;
+}
+
 .material-icons.left {
     display: inline-flex;
     align-items: center;
@@ -174,8 +185,13 @@ export default {
     line-height: inherit;
 }
 
+.row.chat-box {
+    margin-right: 0px;
+    margin-left: 0px;
+}
 
-main {
+
+.chat-app {
     flex: 0 1 auto;
 }
 </style>

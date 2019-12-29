@@ -1,7 +1,12 @@
 <template>
-  <div id="app">
+  <div id="app" class="blue-grey darken-4">
     <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
-    <Chat msg="Welcome to Your Vue.js App"/>
+    <main class="row">
+      <Chat title="Channel 1" class="col"></Chat>
+      <Chat title="Channel 2" class="col"></Chat>
+      <Chat title="Channel 3" class="col"></Chat>
+
+    </main>
   </div>
 </template>
 
